@@ -8,6 +8,8 @@ from .short_term import ShortTermMemory, STMItem
 from .vault import Vault, VaultAtom, VaultType, AtomStatus
 from .skg import SelfKnowledgeGraph, Relation, Edge
 from .memory_layer import AIMSMemorySystem, CognitiveMemoryLayer
+from .indexes import VaultIndexes
+from .retrieval_ledger import RetrievalLedger
 
 __all__ = [
     "TriTimestamp",
@@ -32,4 +34,6 @@ __all__ = [
     "Edge",
     "CognitiveMemoryLayer",
     "AIMSMemorySystem",
+    "VaultIndexes",
+    "RetrievalLedger",
 ]

@@ -1,7 +1,13 @@
 __pycache__/
 *.py[cod]
 *.ledger
+*.sqlite
+*.writer.lock
+*.keys.json
 data/
+vault/
+indexes/
+retrieval/
 .env
 .venv/
 venv/

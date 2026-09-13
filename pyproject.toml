@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aims-memory-system"
+version = "0.2.0"
+description = "A.I.M.S. — Agnostic Immutable Memory System"
+requires-python = ">=3.9"
+dependencies = ["fastapi>=0.110", "uvicorn>=0.29", "pydantic>=2.0"]
+
+[tool.setuptools]
+packages = ["memory_core"]

@@ -7,6 +7,29 @@
 > every consequential retrieval, and recursively improves future memory
 > relevance without rewriting historical truth.
 
+## Current Implementation Status
+
+The canonical implementation is the repository root. The former nested source
+layout has been retired. The following capabilities are implemented and covered
+by regression tests in the current working tree:
+
+* append-only long-term and Vault event ledgers with replay;
+* A Priori and A Posteriori Vault evidence, plus SKG reconstruction;
+* SHA-256 canonical record chains, tri-timestamps, visual Glyph mode, and
+  HMAC-SHA-256 authenticated Glyph mode with immutable genesis policy;
+* fail-closed authenticated startup, local runtime keyrings, and key rotation;
+* Windows/POSIX single-writer locking;
+* persistent A Priori, A Posteriori, and Collective indexes;
+* local SQLite retrieval receipts and retrieval feedback foundation;
+* loopback-only service defaults, opt-in CORS, and token-required remote bind;
+* root-level packaging metadata, test suite, and CI workflow.
+
+The cognitive-adaptation completion gate is implemented and integration-tested:
+public retrieval-mode aliases, exact forensic retrieval snapshots, SKG edge
+lifecycle and merge evidence, causal outcome evaluations, and utility-informed
+ranking survive restart. The portable display hub remains a separate deferred
+presentation milestone.
+
 ## Signature Architecture & Doctrine
 
 **Architecture Class:** Model-Agnostic Cognitive Memory Substrate
@@ -52,7 +75,8 @@ The layer exists to provide a cognitive system with five fundamental capabilitie
 
 The architecture is built around one absolute rule:
 
-> **The Immutable Vault is the source of truth. Everything else is derived state.**
+> **The Immutable Vault preserves historical truth. The SKG derives current
+> relevance from that evidence; it never replaces or rewrites the Vault.**
 
 The Structured Knowledge Graph, indexes, caches, retrieval scores, summaries, confidence values, and cognitive interpretations may evolve.
 
@@ -500,9 +524,8 @@ The Collective Index identifies their relationship.
 
 The **Structured Knowledge Graph** represents the system's current structured understanding of the Vault.
 
-The SKG is not the source of truth.
-
-It is derived state.
+The SKG is not historical truth. It is derived, mutable state that organizes
+current relevance from immutable Vault evidence.
 
 Therefore it may be:
 
@@ -1037,7 +1060,7 @@ All retrieval returns retained
 
 ```text
 Purpose:
-Historical authority and source of truth
+Historical authority and immutable evidence
 
 Behavior:
 Append-only
@@ -1147,7 +1170,7 @@ Responsible for:
 * evaluation history;
 * append-only persistence.
 
-## Cognitive Memory Layer
+## A.I.M.S. Memory Subsystems
 
 Responsible for:
 
@@ -1170,7 +1193,7 @@ VAULT SYSTEM
 
       ↕ direct connection
 
-COGNITIVE MEMORY LAYER
+DERIVED MEMORY SUBSYSTEMS
 "What matters now?"
 "What have I learned?"
 "What should I remember next time?"

@@ -30,6 +30,18 @@ from .long_term import LongTermMemory, EntryType, ImmutableEntry
 from .short_term import ShortTermMemory, STMItem
 from .vault import Vault, VaultAtom, VaultType
 from .skg import SelfKnowledgeGraph, Relation
+from .indexes import VaultIndexes
+from .retrieval_ledger import RetrievalLedger
+
+
+_RETRIEVAL_MODE_MAP = {
+    "PRIOR_ONLY": "a_priori",
+    "POSTERIOR_ONLY": "a_posteriori",
+    "COLLECTIVE": "collective",
+    # Backward-compatible internal spellings.
+    "A_PRIORI": "a_priori",
+    "A_POSTERIORI": "a_posteriori",
+}
 
 
 class AIMSMemorySystem:
@@ -42,6 +54,7 @@ class AIMSMemorySystem:
         glyph_key: Optional[Union[str, bytes]] = None,
         glyph_key_id: Optional[str] = None,
         glyph_keys: Optional[Mapping[str, Union[str, bytes]]] = None,
+        security_mode: Optional[str] = None,
     ):
         self.store_path = Path(store_path)
         self.long_term = LongTermMemory(
@@ -50,12 +63,24 @@ class AIMSMemorySystem:
             glyph_key=glyph_key,
             glyph_key_id=glyph_key_id,
             glyph_keys=glyph_keys,
+            security_mode=security_mode,
         )
         self.short_term = ShortTermMemory(
             capacity=stm_capacity, decay_half_life_seconds=stm_decay_half_life_seconds
         )
-        self.vault = Vault()
+        self.vault = Vault(
+            self.store_path,
+            matrix_id=matrix_id,
+            glyph_key=glyph_key,
+            glyph_key_id=glyph_key_id,
+            glyph_keys=glyph_keys,
+            security_mode=security_mode,
+        )
         self.skg = SelfKnowledgeGraph(self.vault)
+        self.skg.rebuild_from_vault()
+        self.indexes = VaultIndexes(self.store_path / "indexes" / "vault_indexes.sqlite")
+        self.indexes.rebuild(self.vault)
+        self.retrieval_ledger = RetrievalLedger(self.store_path / "retrieval" / "retrieval_ledger.sqlite")
 
     # ---------- short-term ingress ----------
 
@@ -83,13 +108,24 @@ class AIMSMemorySystem:
         """
         return self.long_term.write_entry(entry_type, content, metadata=metadata, writer_id=writer_id)
 
+    def rotate_glyph_key(self, new_key: Union[str, bytes], new_key_id: str, writer_id: str = "system") -> Dict[str, ImmutableEntry]:
+        """Rotate both authoritative ledgers while retaining historical key IDs."""
+        vault_ledger = self.vault.event_ledger
+        if vault_ledger is None:
+            raise RuntimeError("Persistent Vault ledger is required for key rotation")
+        vault_event = vault_ledger.rotate_glyph_key(new_key, new_key_id, writer_id=writer_id)
+        memory_event = self.long_term.rotate_glyph_key(new_key, new_key_id, writer_id=writer_id)
+        return {"vault_event": vault_event, "memory_event": memory_event}
+
     # ---------- vault admission ----------
 
     def assert_apriori(self, statement: str, metadata: Optional[Dict[str, Any]] = None) -> VaultAtom:
         """Declare a foundational axiom. Not derived from any entry;
         asserted by design. Immune to pruning below its confidence floor.
         """
-        return self.vault.add_apriori(statement, metadata=metadata)
+        atom = self.vault.add_apriori(statement, metadata=metadata)
+        self.indexes.upsert(atom)
+        return atom
 
     def derive_aposteriori(
         self,
@@ -110,6 +146,7 @@ class AIMSMemorySystem:
         )
         for e in source_entries:
             self.skg.link(atom.atom_id, e.entry_id, Relation.DERIVED_FROM)
+        self.indexes.upsert(atom)
         return atom
 
     def promote_from_short_term(
@@ -133,6 +170,52 @@ class AIMSMemorySystem:
 
     def link(self, source_atom_id: str, target_atom_id: str, relation: Relation, weight: float = 1.0):
         return self.skg.link(source_atom_id, target_atom_id, relation, weight=weight)
+
+    def retrieve(self, query: str, mode: str = "COLLECTIVE", limit: int = 20) -> Dict[str, Any]:
+        """Route a public retrieval mode through its derived index and receipt it."""
+        requested_mode = mode.upper()
+        try:
+            index_name = _RETRIEVAL_MODE_MAP[requested_mode]
+        except KeyError as error:
+            raise ValueError("mode must be PRIOR_ONLY, POSTERIOR_ONLY, or COLLECTIVE") from error
+        results = self.indexes.search(
+            self.vault, query, index_name=index_name, limit=limit,
+            utilities=self.retrieval_ledger.utilities(), skg_weight_for=self.skg.relevance_weight,
+        )
+        return self.retrieval_ledger.record(requested_mode, query, results)
+
+    def retrieval(self, retrieval_id: str) -> Optional[Dict[str, Any]]:
+        return self.retrieval_ledger.get(retrieval_id)
+
+    def record_retrieval_feedback(self, retrieval_id: str, useful_atom_ids: List[str]) -> str:
+        return self.evaluate_cognitive_outcome(retrieval_id, useful_atom_ids=useful_atom_ids)["feedback_id"]
+
+    def evaluate_cognitive_outcome(
+        self, retrieval_id: str, cognitive_event_id: Optional[str] = None, outcome_id: Optional[str] = None,
+        useful_atom_ids: Optional[List[str]] = None, harmful_atom_ids: Optional[List[str]] = None,
+        irrelevant_atom_ids: Optional[List[str]] = None, evidence_ids: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Link a returned set to an outcome, durable utility, and SKG changes."""
+        receipt = self.retrieval(retrieval_id)
+        if receipt is None:
+            raise ValueError("Unknown retrieval_id")
+        useful, harmful = useful_atom_ids or [], harmful_atom_ids or []
+        feedback = self.retrieval_ledger.record_feedback(
+            retrieval_id, useful, harmful, irrelevant_atom_ids or [], cognitive_event_id,
+            outcome_id, evidence_ids or [],
+        )
+        evaluation = self.vault.record_cognitive_evaluation({
+            "retrieval_id": retrieval_id, "retrieval_set_hash": receipt["retrieval_set_hash"],
+            "cognitive_event_id": cognitive_event_id, "outcome_id": outcome_id,
+            "useful_atom_ids": useful, "harmful_atom_ids": harmful,
+            "irrelevant_atom_ids": irrelevant_atom_ids or [], "evidence_ids": evidence_ids or [],
+            "utility_changes": feedback["utility_changes"], "tri_timestamp": feedback["tri_timestamp"],
+        })
+        edges = self.skg.update_edges_from_outcome(useful, harmful, evidence_ids or [])
+        return {**feedback, "evaluation": evaluation, "updated_edges": [edge.to_dict() for edge in edges]}
+
+    def merge_skg_nodes(self, canonical_atom_id: str, merged_atom_ids: List[str], reason: str = "identity_reconciled") -> Dict[str, str]:
+        return self.skg.merge_nodes(canonical_atom_id, merged_atom_ids, reason)
 
     # ---------- query surface ----------
 
@@ -169,6 +252,7 @@ class AIMSMemorySystem:
         """
         stm_evicted = self.short_term.sweep()
         eval_summary = self.skg.recursive_self_evaluate(max_passes=self_eval_passes)
+        self.indexes.rebuild(self.vault)
         return {
             "stm_evicted": stm_evicted,
             "stm_stats": self.short_term.stats(),
@@ -183,6 +267,7 @@ class AIMSMemorySystem:
             "short_term": self.short_term.stats(),
             "vault": self.vault.stats(),
             "skg": self.skg.stats(),
+            "indexes": self.indexes.status(),
         }
 
 
