@@ -28,7 +28,7 @@ logger = logging.getLogger("memory-layer-service")
 app = FastAPI(
     title="A.I.M.S. — Agnostic Immutable Memory System",
     description="Immutable Vault System + short-term memory + a priori/a posteriori indexes + SKG",
-    version="1.0.0",
+    version="0.2.0",
 )
 _cors_origins = [origin.strip() for origin in os.getenv("AIMS_CORS_ORIGINS", "").split(",") if origin.strip()]
 if _cors_origins:

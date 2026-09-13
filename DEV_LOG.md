@@ -37,3 +37,24 @@
 ## 2026-09-13 — Licensing
 
 - Added the Spruked proprietary and confidential software license.
+
+## 2026-09-13 — Prototype freeze and v1 hardening contract
+
+- Reclassified the current implementation as **v0.2.0 — Functional Prototype**.
+- Corrected documentation that had implied completed cognitive architecture.
+- Recorded measurable v0.3 through v1.0 requirements covering three-SKG
+  domain isolation, epistemic authority, outcome evidence, hybrid retrieval,
+  security, recovery, scale, inspection, anchoring, replication, and
+  independent review.
+
+## 2026-09-13 — v0.3 three-SKG and backend foundation
+
+- Replaced the mixed-domain SKG with A Priori, A Posteriori, and Collective
+  logical graph domains, routed only by Vault atom epistemic origin.
+- Made graph mutation event-first: immutable Vault evidence is appended before
+  derived graph state changes; a failed Vault event leaves graph state intact.
+- Preserved `memory_core.skg` imports through a compatibility facade and moved
+  long-term entry provenance out of SKG topology.
+- Added the zero-dependency Python reference backend and optional GraphQLite
+  derived-state mirror. GraphQLite was verified on Windows with Python 3.14
+  using its current 0.8.0 wheel and a Cypher traversal probe.

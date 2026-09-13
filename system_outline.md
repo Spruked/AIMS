@@ -7,14 +7,15 @@
 > every consequential retrieval, and recursively improves future memory
 > relevance without rewriting historical truth.
 
-## Current Implementation Status
+## Current Implementation Status — v0.2.0 Functional Prototype
 
 The canonical implementation is the repository root. The former nested source
-layout has been retired. The following capabilities are implemented and covered
-by regression tests in the current working tree:
+layout has been retired. The following foundation capabilities are implemented
+and covered by regression tests in the current working tree:
 
 * append-only long-term and Vault event ledgers with replay;
-* A Priori and A Posteriori Vault evidence, plus SKG reconstruction;
+* A Priori and A Posteriori Vault evidence, plus three domain-isolated,
+  replayable SKGs: A Priori, A Posteriori, and Collective;
 * SHA-256 canonical record chains, tri-timestamps, visual Glyph mode, and
   HMAC-SHA-256 authenticated Glyph mode with immutable genesis policy;
 * fail-closed authenticated startup, local runtime keyrings, and key rotation;
@@ -24,11 +25,15 @@ by regression tests in the current working tree:
 * loopback-only service defaults, opt-in CORS, and token-required remote bind;
 * root-level packaging metadata, test suite, and CI workflow.
 
-The cognitive-adaptation completion gate is implemented and integration-tested:
-public retrieval-mode aliases, exact forensic retrieval snapshots, SKG edge
-lifecycle and merge evidence, causal outcome evaluations, and utility-informed
-ranking survive restart. The portable display hub remains a separate deferred
-presentation milestone.
+Forensic retrieval snapshots, event-first graph edge lifecycle/merge evidence,
+causal outcome records, and utility-informed ranking survive restart. The SKG
+is currently available through a zero-dependency Python reference backend with
+an optional GraphQLite derived-state accelerator; neither backend is Vault
+authority. These remain prototype implementations, not completion of the full
+cognitive architecture. Authority classification; formal outcome signals;
+hybrid retrieval; scale validation; recovery proof; and the Display Hub remain
+future work. The measurable plan is the [v1 hardening
+contract](HARDENING_CONTRACT.md).
 
 ## Signature Architecture & Doctrine
 

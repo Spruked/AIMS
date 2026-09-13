@@ -13,6 +13,7 @@ class CompleteCognitiveMemoryCycleTests(unittest.TestCase):
             memory = AIMSMemorySystem(root, matrix_id="cognitive_cycle")
 
             prior = memory.assert_apriori("shared memory should be preferred")
+            prior_alias = memory.assert_apriori("immutable evidence remains authoritative")
             source = memory.commit(EntryType.OBSERVATION, {"outcome": "shared memory succeeded"})
             learned = memory.derive_aposteriori("shared memory succeeded in practice", [source], initial_confidence=0.70)
             for _ in range(3):
@@ -47,8 +48,8 @@ class CompleteCognitiveMemoryCycleTests(unittest.TestCase):
             self.assertEqual(memory.skg.edge(edge.edge_id).state, EdgeState.PRUNED)
             self.assertNotIn(edge.edge_id, [item.edge_id for item in memory.skg.active_edges()])
 
-            aliases = memory.merge_skg_nodes(prior.atom_id, [learned.atom_id])
-            self.assertEqual(aliases[learned.atom_id], prior.atom_id)
+            aliases = memory.merge_skg_nodes(prior.atom_id, [prior_alias.atom_id])
+            self.assertEqual(aliases[prior_alias.atom_id], prior.atom_id)
 
             restarted = AIMSMemorySystem(root, matrix_id="cognitive_cycle")
             replayed = restarted.retrieval(collective_before["retrieval_id"])
@@ -56,7 +57,7 @@ class CompleteCognitiveMemoryCycleTests(unittest.TestCase):
             ranking_after_restart = restarted.retrieve("shared memory", "COLLECTIVE")
             self.assertEqual(ranking_after_restart["results"][0]["atom_id"], learned.atom_id)
             self.assertEqual(restarted.skg.edge(edge.edge_id).state, EdgeState.PRUNED)
-            self.assertEqual(restarted.skg.resolve_node(learned.atom_id), prior.atom_id)
+            self.assertEqual(restarted.skg.resolve_node(prior_alias.atom_id), prior.atom_id)
             self.assertTrue(all(entry.tri_timestamp.verify_internal_consistency() for entry in restarted.long_term.entries))
             self.assertTrue(all(entry.tri_timestamp.verify_internal_consistency() for entry in restarted.vault.event_ledger.entries))
             vault_event_names = [entry.content["event"] for entry in restarted.vault.event_ledger.entries]

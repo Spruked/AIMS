@@ -24,12 +24,12 @@ constructing one CognitiveMemoryLayer against a local directory.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 from .long_term import LongTermMemory, EntryType, ImmutableEntry
 from .short_term import ShortTermMemory, STMItem
 from .vault import Vault, VaultAtom, VaultType
-from .skg import SelfKnowledgeGraph, Relation
+from .skg import SKGBackend, SKGTrio, Relation
 from .indexes import VaultIndexes
 from .retrieval_ledger import RetrievalLedger
 
@@ -55,6 +55,7 @@ class AIMSMemorySystem:
         glyph_key_id: Optional[str] = None,
         glyph_keys: Optional[Mapping[str, Union[str, bytes]]] = None,
         security_mode: Optional[str] = None,
+        skg_backend_factory: Optional[Callable[[str], SKGBackend]] = None,
     ):
         self.store_path = Path(store_path)
         self.long_term = LongTermMemory(
@@ -76,8 +77,10 @@ class AIMSMemorySystem:
             glyph_keys=glyph_keys,
             security_mode=security_mode,
         )
-        self.skg = SelfKnowledgeGraph(self.vault)
-        self.skg.rebuild_from_vault()
+        self.skg_trio = SKGTrio(self.vault, backend_factory=skg_backend_factory)
+        # v0.2 compatibility surface. New host integrations should prefer
+        # `skg_trio` to make domain ownership explicit.
+        self.skg = self.skg_trio
         self.indexes = VaultIndexes(self.store_path / "indexes" / "vault_indexes.sqlite")
         self.indexes.rebuild(self.vault)
         self.retrieval_ledger = RetrievalLedger(self.store_path / "retrieval" / "retrieval_ledger.sqlite")
@@ -144,8 +147,9 @@ class AIMSMemorySystem:
             metadata=metadata,
             initial_confidence=initial_confidence,
         )
-        for e in source_entries:
-            self.skg.link(atom.atom_id, e.entry_id, Relation.DERIVED_FROM)
+        # Long-term records are immutable provenance, not SKG nodes. The atom
+        # retains their entry IDs in `derived_from`; graph edges are Vault atom
+        # relationships and are routed by epistemic domain.
         self.indexes.upsert(atom)
         return atom
 
@@ -269,6 +273,10 @@ class AIMSMemorySystem:
             "skg": self.skg.stats(),
             "indexes": self.indexes.status(),
         }
+
+    def close(self) -> None:
+        """Release optional derived backend resources; Vault records remain open authority."""
+        self.skg_trio.close()
 
 
 # Compatibility alias for hosts using the pre-A.I.M.S. class name.

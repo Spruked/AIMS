@@ -11,3 +11,5 @@ retrieval/
 .env
 .venv/
 venv/
+build/
+*.egg-info/

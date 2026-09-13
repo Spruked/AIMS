@@ -5,6 +5,22 @@ authoritative evidence in append-only ledgers, separates A Priori knowledge
 from A Posteriori learning, and derives indexes and current relevance without
 rewriting historical truth.
 
+## Release status
+
+**v0.2.0 — Functional Prototype.** The integrity ledger, Vault replay,
+indexes, retrieval receipts, and basic adaptive graph behavior are implemented.
+The three-SKG model, hybrid retrieval, authority classification, formal outcome
+signals, recovery hardening, scale evidence, and Display Hub are not yet
+complete. See [the v1 hardening contract](HARDENING_CONTRACT.md) for the
+measurable release gates.
+
+The **v0.3 work in progress** includes logical A Priori, A Posteriori, and
+Collective SKG domains with a zero-dependency Python reference backend.
+GraphQLite is the selected optional embedded accelerator; it remains derived
+state and is never Vault authority. Install it only when needed with
+`pip install .[graphqlite]`, then provide its backend factory to the host
+integration.
+
 > The Vault preserves truth.
 >
 > The indexes locate truth.
@@ -81,9 +97,9 @@ The versioned API is presentation-free:
 - `GET /api/v1/skg/activity`
 - `GET /api/v1/vault/integrity`
 
-The portable display hub is intentionally deferred as a separate presentation
-milestone; the core API and evidence contracts are now covered by integration
-tests.
+The portable display hub is intentionally deferred. The current API is a
+prototype surface and does not yet provide production authorization, tenancy,
+access auditing, or resource controls.
 
 ## Validation
 
