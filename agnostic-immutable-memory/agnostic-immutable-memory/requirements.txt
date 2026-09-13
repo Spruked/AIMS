@@ -1,0 +1,8 @@
+# memory_core itself has zero third-party dependencies (stdlib only) —
+# it is sovereign by construction and will run with just a Python 3.9+
+# interpreter, no network, no cloud service.
+#
+# These are only needed if you run service.py (the optional HTTP wrapper).
+fastapi>=0.110
+uvicorn>=0.29
+pydantic>=2.0
